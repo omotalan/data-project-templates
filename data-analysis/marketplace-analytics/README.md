@@ -1,17 +1,47 @@
 # Marketplace Product Analytics Template 
 #### A Simulated A/B Test (SQL, dbt, Python skills)
 
-### Quick note: How to use this for learning
+<details style="border: 4px solid #72a6b3; border-radius: 8px; background-color: #d5eef1; padding: 10px; width: 900px;">
+<summary><strong>Quick note for students</strong></summary>
+<br>
+<p>
+If you have no coding knowledge, I suggest starting with Codecademy/Datacamp, or basic, free Youtube videos (Udemy works too, if you feel like paying). You don´t need to finish the entire course to understand the code here, but the basics certainly help.
+</p>
+<p>
+For those with some Python/SQL knowledge: Go through the code here first, with your LLM chat of choice on the side. Whenever you don't understand something, ask it. As you get familiar with the logic, try adapting it to your own context, if applicable.
+</p>
+</details>
+
+## Intro
+
+This is a template for an A/B testing project on marketplace data (more specifically, the XYZ dataset from Kaggle). It can be adapted to roughly any dataset; when you have a basic ELT (Extract-Load-Transform) structure set, you just need to add the context specifics.
+
+**Difficulty:** Intermediate <br>
+**Intended audience:** Jr/Mid Data Analysts (Sr Product Analysts are probably familiar with this structure)
 
 
 ## Project Goals
+**(Note: For pro-level "add-on" challenges, skip to the end of this readme)** 
 
-**(Note: See harder, pro-level extensions to this template at the end)** 
+1. Help product data analysts quickly implement an end-to-end A/B testing routine with a low-friction template
+  1.1. Proper datawarehousing infrastructure included (based on dbt)
+  1.2. Basic analytics setup, easily expansible to an analytics dashboard
+2. Explain A/B testing specifics beyond the basics with a practical example
+  2.1. This is not meant to be a deep/exhaustive Statistics course lecture, but rather a quick go-to reference applicable to real-world problems. 
+3. Give data analyst learners/beginners a practical example to work with
+
 
 ## Data & Pipeline Overview
 
+- Dataset: Kaggle's "eCommerce Behavior Data from Multi Category store" (Large volume, Marketplace-style dataset)
+- Storage/engine: DuckDB
+- dbt models:
+  - stg_events: cleaned event stream + variant assignment + event naming
+  - fct_funnel: user‑level funnel presence (view/add_to_cart/contact)
+  - fct_ab_test: per‑variant users, conversions, and conversion rate for A/B testing
 
-## How to run this
+
+## How to run this?
 
 ### Connecting to Kaggle API for easier file management
 1. Install kaggle API (```pip install kaggle```), preferably in a virtual environment (aka venv)
@@ -101,7 +131,7 @@ This ties back to your source datasets, and the staging structure you set up in 
 - No explicit segmentation (e.g., geography, device) or further controlling (e.g. by product)
   - Why not? Given the naive variant split, it would be pointless to try and do it here. The main purpose of this exercise is provide a simple and effective A/B testing template, particularly for beginners
 
-### How would it be IRL?
+### How would it work IRL?
 
 - A concrete, well-bounded data point (e.g. a new feature) would drive the experiment design. Preferably something that can be boiled down to a boolean (variant A = True, variant B = False for data point X)
 - Well-defined control parameters, followed by pre-filtering before random variant assignment
@@ -116,5 +146,15 @@ Additional analyses (e.g., segmented uplift, regression adjustments) may be appl
 
 ## Results & Interpretation
 
+- Key funnel numbers (e.g., % of users reaching each step, biggest drop‑off).[Adjunto]
+- A/B test outcome:
+  - Conversion rates for A and B.
+  - Test statistic / p‑value.
 
-## This is too easy! Some pro-level extensions FTW
+Conclusion: “Results are statistically consistent with no effect; this is expected in a simulated setup where variants are arbitrary.”[Adjunto]
+
+"So what?": “In this simulation we do not ‘ship’ any change; the value here is demonstrating the workflow and reasoning, and outlining what a real experiment would look like.”
+Note: This is where you explicitly lean into “null is expected and fine, because this is a methodology demo.
+
+
+## This is too easy! A few "pro-level" addons FTW
