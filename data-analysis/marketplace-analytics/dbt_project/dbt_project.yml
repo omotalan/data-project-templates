@@ -37,5 +37,7 @@ models:
   marketplace_analytics:
     staging:
       +schema: staging
+      +materialized: view   # We want a 1:1 representation of the data, with light transformations
     marts:
       +schema: marts
+      +materialized: table  # We want fast downstream queries
