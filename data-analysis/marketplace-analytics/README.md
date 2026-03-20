@@ -188,8 +188,32 @@ Conclusion: Results are statistically consistent with a tiny difference. This me
 
 **"So what?" factor:** Granted that this is a demo template, any outcome can yield business-relevant conclusions. The "inconclusive" outcome is the most "dangerous", as it likely exposes flaws in test design. Still, it can shed light on poor assumptions that were taken for granted by the team, or on a flawed customer segmentation that requires a review of business logic.
 
+### Extras: Funnel analysis
 
-## This is too easy! A few "pro-level" addons FTW
+Example output:
+![alt text](data/funnel_chart.png)
+
+**Note: Add to Cart step underrepresented in this dataset; in a real marketplace, funnel order may differ by product category.**
+
+
+
+
+## Further work - pro add-ons FTW
+
+### Segmented A/B Analysis
+
+Segment-level A/B tests (e.g. by brand or category) are supported via the
+`generate_ab_segment` dbt macro. Create a view for any dimension in `segments.sql`:
+
+```sql
+-- marts/fct_ab_brand.sql
+{{ config(materialized='view') }}
+{{ generate_ab_segment('brand') }}
+```
+
+Then query from the notebook:
+` df = con.execute("SELECT * FROM marts.fct_ab_brand").df() `
+
 
 
 Option A – Segment‑level view of the experiment

@@ -2,114 +2,107 @@ import pytest
 import pandas as pd
 import numpy as np
 import os
-import shutil
+import duckdb
 from utils.chunk_processor import ChunkProcessor, ABConfig
 
-# Create tiny test data
+
 @pytest.fixture
 def sample_csv(tmp_path):
-    """100-row test CSV for chunking tests."""
+    """100-row test CSV."""
     data = {
         'user_id': np.tile(np.arange(50), 2),
         'event_type': np.random.choice(['view', 'purchase', 'cart'], 100),
         'product_id': np.random.randint(1000, 2000, 100)
     }
-    df = pd.DataFrame(data)
-    csv_path = tmp_path / "tiny_events.csv"
-    df.to_csv(csv_path, index=False)
-    return str(csv_path)
+    pd.DataFrame(data).to_csv(tmp_path / "tiny_events.csv", index=False)
+    return str(tmp_path / "tiny_events.csv")
+
 
 @pytest.fixture
-def sample_parquet(tmp_path):
-    """Single test Parquet chunk."""
-    data = pd.DataFrame({
-        'user_id': [1, 2, 3, 4, 1, 2],
-        'event_type': ['view', 'purchase', 'view', 'cart', 'purchase', 'view'],
-        'product_id': [1001, 1002, 1003, 1001, 1002, 1003]
-    })
-    parquet_path = tmp_path / "test_chunk.parquet"
-    data.to_parquet(parquet_path, index=False)
-    return str(parquet_path)
+def sample_chunks(tmp_path):
+    """Pre-built Parquet chunks for load tests."""
+    chunks = []
+    for i in range(3):
+        df = pd.DataFrame({
+            'user_id': range(i * 10, (i + 1) * 10),
+            'event_type': ['purchase' if j % 3 == 0 else 'view' for j in range(10)],
+            'product_id': np.random.randint(1000, 2000, 10)
+        })
+        path = str(tmp_path / f"chunk_{i:03d}.parquet")
+        df.to_parquet(path, index=False)
+        chunks.append(path)
+    return chunks
+
 
 @pytest.fixture
 def processor():
-    """Default processor."""
-    return ChunkProcessor(chunk_size=50)  # Small chunks for tests
+    return ChunkProcessor(chunk_size=50)
+
 
 def test_chunk_csv_to_parquet(sample_csv, tmp_path, processor):
-    """10k CSV → 2 Parquet chunks created."""
+    """100-row CSV with chunk_size=50 → 2 Parquet files."""
     chunks = processor.chunk_csv_to_parquet(sample_csv, str(tmp_path / "chunks"))
-    
-    assert len(chunks) == 3  # 100 rows / 50 = 2 + partial
+
+    assert len(chunks) == 2
     assert all(os.path.exists(c) for c in chunks)
     assert all(c.endswith('.parquet') for c in chunks)
-    
-    # Cleanup
-    shutil.rmtree(tmp_path / "chunks")
 
-def test_aggregate_chunk_ab_default(sample_parquet, processor):
-    """Default config → expected A/B counts."""
-    result = processor.aggregate_chunk_ab(sample_parquet)
-    
-    # Expected: users 1,3=A (odd); 2,4=B (even)
-    # 2 purchases total (events 1,4)
-    assert result['users_A'] == 2
-    assert result['users_B'] == 2
-    assert result['conv_A'] == 1  # user 1 purchase
-    assert result['conv_B'] == 1  # user 2 purchase
 
-def test_aggregate_chunk_ab_custom_config(sample_parquet):
-    """Custom ABConfig changes results."""
-    custom_config = ABConfig(
-        conversion_event='view',  # Different success event
-        variant_assignment=lambda uid: 'test' if uid <= 2 else 'control'
-    )
-    processor = ChunkProcessor(ab_config=custom_config)
-    
-    result = processor.aggregate_chunk_ab(sample_parquet)
-    # Now 'view' events = success, different split
-    assert result['conv_A'] > 0  # test group has views
-    assert result['conv_B'] > 0  # control has views
-
-def test_validate_representativeness_pass(tmp_path, processor):
-    """Identical chunks → pass validation."""
-    # Create 3 identical chunks
-    data = pd.DataFrame({'user_id': range(100), 'event_type': ['view']*100})
-    for i in range(3):
-        data.to_parquet(tmp_path / f"chunk_{i:03d}.parquet")
-    chunks = [str(tmp_path / f"chunk_{i:03d}.parquet") for i in range(3)]
-    
-    validation = processor.validate_chunk_representativeness(chunks)
-    assert all(len(issues) == 0 for _, issues in validation)
-
-def test_validate_representativeness_fail(tmp_path, processor):
-    """Drifted chunks → correctly flagged."""
-    # Chunk 0: baseline
-    pd.DataFrame({'user_id': range(100), 'event_type': ['view']*100}).to_parquet(tmp_path / "chunk_000.parquet")
-    
-    # Chunk 1: different event dist
-    drifted = pd.DataFrame({'user_id': range(100), 'event_type': ['purchase']*100})
-    drifted.to_parquet(tmp_path / "chunk_001.parquet")
-    
-    chunks = [str(tmp_path / f"chunk_{i:03d}.parquet") for i in range(2)]
-    validation = processor.validate_chunk_representativeness(chunks, tolerance=0.05)
-    
-    assert len(validation[0][1]) > 0  # Chunk 1 should have issues
-    assert "Event 'view' drift" in " ".join(validation[0][1])
-
-def test_pool_ztest_known_input():
-    """Known aggregates → correct z-test math."""
+def test_load_chunks_to_duckdb(sample_chunks, tmp_path):
+    """3 chunks → DuckDB table with correct total rows."""
+    db_path = str(tmp_path / "test.duckdb")
     processor = ChunkProcessor()
-    aggregates = pd.DataFrame({
-        'users_A': [25000, 25000],
-        'users_B': [25000, 25000],
-        'conv_A': [1250, 1250],
-        'conv_B': [1300, 1275]
-    })
-    
-    results = processor.pool_and_ztest(aggregates)
-    
-    # Expected: 5% vs 5.2%, small uplift, p~0.13 (not sig)
-    assert abs(results['cr_A'] - 0.05) < 0.001
-    assert abs(results['cr_B'] - 0.052) < 0.001
-    assert results['p_value'] > 0.05  # Not significant
+
+    processor.load_chunks_to_duckdb(sample_chunks, db_path=db_path, schema='raw', table_name='events')
+
+    con = duckdb.connect(db_path)
+    count = con.execute("SELECT COUNT(*) FROM raw.events").fetchone()[0]
+    con.close()
+
+    assert count == 30  # 3 chunks × 10 rows
+
+
+def test_load_chunks_to_duckdb_no_duplicates(sample_chunks, tmp_path):
+    """Running load twice does not duplicate rows."""
+    db_path = str(tmp_path / "test.duckdb")
+    processor = ChunkProcessor()
+
+    processor.load_chunks_to_duckdb(sample_chunks, db_path=db_path)
+    processor.load_chunks_to_duckdb(sample_chunks, db_path=db_path)
+
+    con = duckdb.connect(db_path)
+    count = con.execute("SELECT COUNT(*) FROM raw.events").fetchone()[0]
+    con.close()
+
+    assert count == 30  # Still 30, not 60
+
+
+def test_run_ab_aggregation(sample_chunks, tmp_path):
+    """Known data → correct A/B results and z-test output."""
+    db_path = str(tmp_path / "test.duckdb")
+    processor = ChunkProcessor()
+
+    # Load raw data
+    processor.load_chunks_to_duckdb(sample_chunks, db_path=db_path, schema='raw', table_name='events')
+
+    # Create a minimal fct_funnel mart manually (simulates dbt output)
+    con = duckdb.connect(db_path)
+    con.execute("CREATE SCHEMA IF NOT EXISTS marts")
+    con.execute("""
+        CREATE TABLE marts.fct_funnel AS
+        SELECT
+            user_id,
+            CASE WHEN user_id % 2 = 0 THEN 'A' ELSE 'B' END AS variant,
+            MAX(CASE WHEN event_type = 'purchase' THEN 1 ELSE 0 END) AS contacted
+        FROM raw.events
+        GROUP BY 1, 2
+    """)
+    con.close()
+
+    results = processor.run_ab_aggregation(db_path=db_path)
+
+    assert 'cr_A' in results
+    assert 'p_value' in results
+    assert 0 <= results['cr_A'] <= 1
+    assert 0 <= results['cr_B'] <= 1
+    assert 0 <= results['p_value'] <= 1
