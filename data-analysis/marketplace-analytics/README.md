@@ -1,6 +1,7 @@
 # Marketplace Product Analytics Template 
 #### A Simulated A/B Test (SQL, dbt, Python skills)
 
+### (_QUICK START (TL;DR): run notebook/quick_start.ipynb_)
 
 ## Intro
 
