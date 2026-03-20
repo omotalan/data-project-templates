@@ -1,16 +1,6 @@
 # Marketplace Product Analytics Template 
 #### A Simulated A/B Test (SQL, dbt, Python skills)
 
-<details style="border: 4px solid #72a6b3; border-radius: 8px; background-color: #d5eef1; padding: 10px; width: 900px;">
-<summary><strong>Quick note for students</strong></summary>
-<br>
-<p>
-If you have no coding knowledge, I suggest starting with Codecademy/Datacamp, or basic, free Youtube videos (Udemy works too, if you feel like paying). You don´t need to finish the entire course to understand the code here, but the basics certainly help.
-</p>
-<p>
-For those with some Python/SQL knowledge: Go through the code here first, with your LLM chat of choice on the side. Whenever you don't understand something, ask it. As you get familiar with the logic, try adapting it to your own context, if applicable.
-</p>
-</details>
 
 ## Intro
 
@@ -18,6 +8,19 @@ This is a template for an A/B testing project on marketplace data (more specific
 
 **Difficulty:** Intermediate <br>
 **Intended audience:** Jr/Mid Data Analysts (Sr Product Analysts are probably familiar with this structure)
+
+<details style="border: 4px solid #81969c; border-radius: 8px; background-color: #f0feff; padding: 10px; width: 900px;">
+<summary style="color: #000000;">
+<strong>Quick note for students</strong>
+</summary>
+<br>
+<p style="color: #000000;">
+If you have no coding knowledge, I suggest starting with Codecademy/Datacamp, or basic, free Youtube videos (Udemy works too, if you feel like paying). You don´t need to finish the entire course to understand the code here, but the basics certainly help.
+</p>
+<p style="color: #000000;">
+For those with some Python/SQL knowledge: Go through the code here first, with your LLM chat of choice on the side. Whenever you don't understand something, ask it. As you get familiar with the logic, try adapting it to your own context, if applicable.
+</p>
+</details>
 
 
 ## Project Goals
@@ -40,40 +43,64 @@ This is a template for an A/B testing project on marketplace data (more specific
   - fct_funnel: user‑level funnel presence (view/add_to_cart/contact)
   - fct_ab_test: per‑variant users, conversions, and conversion rate for A/B testing
 
+<br>
 
-## How to run this?
+<details style="border: 4px solid #81969c; border-radius: 8px; background-color: #f0feff; padding: 10px; width: 900px;">
+<summary style="color: #000000;">
+<strong>Installation and setup</strong>
+</summary>
+<h3 style="color: #000000;"> Connecting to Kaggle API for easier file management </h3> 
+<p>
+<ol style="color: #000000;">
+<li>Install kaggle API (<code>pip install kaggle</code>), preferably in a virtual environment (aka venv)</li>
+<li>Generate API key from your Kaggle account settings: <code>Kaggle → Account → “Create New API Token”</code>. Follow instructions</li>
+<li>Run command to download files <code>kaggle datasets download -d mkechinov/ecommerce-behavior-data-from-multi-category-store</code></li>
+   <ol style="color: #000000;">
+   <li>It will generate a zip file -> unzip it by running <code>unzip file.zip -d data/</code></li>
+   <li>Add your /data directory to .gitignore, so you won't load it to the repo</li>
+   <li>Notice this will download the dataset to disk, so make sure you have space</li>
+   </ol>
+</ol>
+</p>
+<h3 style="color: #000000;"> Connecting to duck db, loading the data (see notebook for details) </h3>
+<p>
+<ol style="color: #000000;">
+<li>Install duck db (<code>pip install duckdb</code>) in your venv</li>
+<li>Sample the dataset (the full file is too large) for optimized processing</li>
+   <ul style="color: #000000;">
+   <li>Notice that if you want to analyze the whole file, you'll need to load all the data. More on that later</li>
+   </ul>
+<li>Load duck db, create your db file and schemas for dbt</li>
+<li>Load the sampled dataset to duck db</li>
+</ol>
+</p>
+<h3 style="color: #000000;"> Set up dbt, create dbt schema </h3>
+<p>
+<ol style="color: #000000;">
+<li>Install duck db's dbt adapter (<code>pip install dbt-duckdb</code>) in your venv</li>
+<li>Initialize dbt project</li>
+   <ul style="color: #000000;">
+   <li>Define your project name when asked</li>
+   </ul>
+<li>Sample the dataset (the full file is too large) for optimized processing</li>
+   <ul style="color: #000000;">
+   <li>Notice that if you want to analyze the whole file, you'll need to load all the data. More on that later</li>
+   </ul>
+<li>Load duck db, create your db file and schemas for dbt</li>
+<li>Load the sampled dataset to duck db</li>
+</ol>
+</p>
+</details>
 
-### Connecting to Kaggle API for easier file management
-1. Install kaggle API (```pip install kaggle```), preferably in a virtual environment (aka venv)
-2. Generate API key from your Kaggle account settings: ```Kaggle → Account → “Create New API Token”```. Follow instructions
-3. Run command to download files ```kaggle datasets download -d mkechinov/ecommerce-behavior-data-from-multi-category-store```
-   1. It will generate a zip file -> unzip it by running ```unzip file.zip -d data/```
-   2. Add your /data directory to .gitignore, so you won't load it to the repo
-   3. Notice this will download the dataset to disk, so make sure you have space
-
-### Connecting to duck db, loading the data (see notebook for details)
-1. Install duck db (```pip install duckdb```) in your venv
-2. Sample the dataset (the full file is too large) for optimized processing
-   1. Notice that if you want to analyze the whole file, you'll need to load all the data. More on that later
-3. Load duck db, create your db file and schemas for dbt
-4. Load the sampled dataset to duck db
-
-### Set up dbt, create dbt schema
-1. Install duck db's dbt adapter (```pip install dbt-duckdb```) in your venv
-2. Initialize dbt project
-   1. Define your project name when asked
-3. Sample the dataset (the full file is too large) for optimized processing
-   1. Notice that if you want to analyze the whole file, you'll need to load all the data. More on that later
-4. Load duck db, create your db file and schemas for dbt
-5. Load the sampled dataset to duck db
-
-
+<br>
 
 ## A/B Test Methodology
 
 ### Experiment Design
 
 This simulated A/B test measures the impact of a product change on user conversion, using event-level user data from an online marketplace (Kaggle dataset).
+
+Being a comparison of proportions (conversion percentages) of a binary outcome (converted vs not), I use a z-test, which standardizes the differences in each group, so we establish how far (on standard deviations) is the observed diff from the mean diff, and with what confidence (p-value) 
 
 ### Variant Assignment
 
@@ -146,15 +173,28 @@ Additional analyses (e.g., segmented uplift, regression adjustments) may be appl
 
 ## Results & Interpretation
 
-- Key funnel numbers (e.g., % of users reaching each step, biggest drop‑off).[Adjunto]
+- (TODO)
+- Key funnel numbers (e.g., % of users reaching each step, biggest drop‑off).
 - A/B test outcome:
   - Conversion rates for A and B.
   - Test statistic / p‑value.
 
-Conclusion: “Results are statistically consistent with no effect; this is expected in a simulated setup where variants are arbitrary.”[Adjunto]
+Conclusion: Results are statistically consistent with a tiny difference. This means we can "trust" the result, but in business terms, it is irrelevant. This is expected in a simulated setup with arbitrary variants carrying no business value.
 
-"So what?": “In this simulation we do not ‘ship’ any change; the value here is demonstrating the workflow and reasoning, and outlining what a real experiment would look like.”
-Note: This is where you explicitly lean into “null is expected and fine, because this is a methodology demo.
+**Why do I say the diff is "irrelevant"?** One could argue a 4% uplift in conversion rate is meaningful, but here the context strips the result of meaning. That's because no relevant business measure was taken to cause this; with more data, the diff would probably have been diluted and the result would not have been significant.
+
+**What if we ran an actual test with a real hypothesis and got inconclusive results?** Many factors can cause this: Poor sampling, small dataset, insufficient timeframe... It can also be the case that there's simply no stastically significant diff. But the test stats alone are usually not enough to answer this; you should thoroughly review your test parameters and assumptions. 
+
+**"So what?" factor:** Granted that this is a demo template, any outcome can yield business-relevant conclusions. The "inconclusive" outcome is the most "dangerous", as it likely exposes flaws in test design. Still, it can shed light on poor assumptions that were taken for granted by the team, or on a flawed customer segmentation that requires a review of business logic.
 
 
 ## This is too easy! A few "pro-level" addons FTW
+
+
+Option A – Segment‑level view of the experiment
+
+    Show variant conversion by one simple segment (e.g., price band or device proxy) and explicitly warn about multiple comparisons / exploratory nature.​
+
+Option B – Early retention or re‑engagement view
+
+    Start a second, smaller model/notebook that looks at whether contacted users come back or engage differently later, framed as “work in progress.”
