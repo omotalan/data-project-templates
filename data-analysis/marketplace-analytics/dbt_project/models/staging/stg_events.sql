@@ -15,6 +15,15 @@ SELECT
     CASE 
         WHEN user_id % 2 = 0 THEN 'A'
         ELSE 'B'
-    END AS variant
+    END AS variant,
 
-FROM {{ source('raw', 'events') }}
+    brand,
+    category_code,
+
+    -- Chunking metadata logic
+    parquet_scan_metadata('filename') AS chunk_filename,        -- DuckDB magic
+    row_number() OVER (PARTITION BY chunk_filename ORDER BY event_time) AS chunk_row
+
+-- Which one of the two FROMs is correct?
+FROM read_parquet('data/chunks/chunk_*.parquet')
+--FROM {{ source('raw', 'events') }}

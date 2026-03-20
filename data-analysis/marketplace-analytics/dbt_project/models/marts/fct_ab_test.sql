@@ -1,22 +1,16 @@
-WITH stg_events AS (
-    SELECT
-        user_id,
-        max(variant) AS variant
-    FROM {{ ref('stg_events') }}
-    GROUP BY 1
-),
-
-fct_funnel AS (
-    SELECT * FROM {{ ref('fct_funnel') }}
-)
+{{ config(materialized='incremental')}}
 
 SELECT
-    se.variant,
-    count(distinct se.user_id) AS users,
-    sum(ff.contacted) AS conversions,
+    variant,
+    count(distinct user_id) AS users,
+    sum(contacted) AS conversions,
     -- Force float division
-    sum(ff.contacted) * (1.0 / count(distinct se.user_id)) AS user_conversion_rate,
-    sum(ff.contacted) * (1.0 / sum(ff.viewed)) AS view_conversion_rate
-FROM stg_events se
-JOIN fct_funnel ff ON ff.user_id =  se.user_id
+    sum(contacted) * (1.0 / count(distinct user_id)) AS user_conversion_rate,
+    sum(contacted) * (1.0 / sum(viewed)) AS view_conversion_rate
+FROM {{ ref('fct_funnel') }}
 GROUP BY 1
+
+{% if is_incremental() %}
+    -- Only new chunks by filename pattern
+    WHERE chunk_id > (SELECT max(chunk_id) FROM {{ this}})
+{% endif %}
