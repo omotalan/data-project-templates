@@ -30,14 +30,12 @@ clean-targets:         # directories to be removed by `dbt clean`
 # directory as views. These settings can be overridden in the individual model
 # files using the `{{ config(...) }}` macro.
 models:
-  dbt_project:
-    # Config indicated by + and applies to all files under models/example/
-    example:
-      +materialized: view
   marketplace_analytics:
     staging:
       +schema: staging
       +materialized: view   # We want a 1:1 representation of the data, with light transformations
+      +tags: ['staging']
     marts:
       +schema: marts
       +materialized: table  # We want fast downstream queries
+      +tags: ['marts', 'daily']

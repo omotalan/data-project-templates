@@ -1,0 +1,213 @@
+version: 2
+
+models:
+  - name: fct_funnel_user
+    description: "Conversion funnel table at user level"
+    columns:
+      - name: user_id
+        description: "User ID and primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+      - name: variant_user
+        description: "User variant (A or B) assigned for the A/B test"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_user in ('A', 'B')"
+      - name: viewed
+        description: "Binary flag. 1 if the user ever viewed an item, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "viewed in (1, 0)"
+      - name: added_to_cart
+        description: "Binary flag. 1 if the user ever added an item to cart, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "added_to_cart in (1, 0)"
+      - name: purchased
+        description: "Binary flag. 1 if the user ever purchased an item, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "purchased in (1, 0)"
+      - name: total_events
+        description: "Total event count per user"
+        data_tests:
+          - not_null
+
+  - name: fct_funnel_session
+    description: "Conversion funnel table at session level"
+    columns:
+      - name: user_session
+        description: "Session ID and primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+      - name: variant_session
+        description: "Session variant (A or B) assigned for the A/B test"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_session in ('A', 'B')"
+      - name: viewed
+        description: "Binary flag. 1 if the session ever included a view event, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "viewed in (1, 0)"
+      - name: added_to_cart
+        description: "Binary flag. 1 if the session ever included an add-to-cart event, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "added_to_cart in (1, 0)"
+      - name: purchased
+        description: "Binary flag. 1 if the session ever included a purchase event, otherwise 0"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "purchased in (1, 0)"
+      - name: total_events
+        description: "Total event count per session"
+        data_tests:
+          - not_null
+
+  - name: fct_ab_test_user
+    description: "A/B test results aggregated at user level"
+    columns:
+      - name: variant_user
+        description: "User variant (A or B)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_user in ('A', 'B')"
+      - name: users
+        description: "Distinct user count per variant"
+        data_tests:
+          - not_null
+      - name: conversions
+        description: "Count of users who converted (purchased)"
+        data_tests:
+          - not_null
+      - name: user_conversion_rate
+        description: "Conversions / total users per variant"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "user_conversion_rate between 0 and 1"
+      - name: view_conversion_rate
+        description: "Conversions / users who viewed at least one item"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "view_conversion_rate between 0 and 1"
+
+  - name: fct_ab_test_session
+    description: "A/B test results aggregated at session level"
+    columns:
+      - name: variant_session
+        description: "Session variant (A or B)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_session in ('A', 'B')"
+      - name: user_sessions
+        description: "Distinct session count per variant"
+        data_tests:
+          - not_null
+      - name: conversions
+        description: "Count of sessions that converted (purchased)"
+        data_tests:
+          - not_null
+      - name: user_conversion_rate
+        description: "Conversions / total sessions per variant"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "user_conversion_rate between 0 and 1"
+      - name: view_conversion_rate
+        description: "Conversions / sessions that viewed at least one item"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "view_conversion_rate between 0 and 1"
+
+  - name: fct_ab_brand_user
+    description: "A/B test results segmented by brand at user level"
+    columns:
+      - name: segment
+        description: "Brand name used as segmentation dimension"
+        data_tests:
+          - not_null
+      - name: variant_user
+        description: "User variant (A or B)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_user in ('A', 'B')"
+      - name: users
+        description: "Distinct user count per brand/variant combination"
+        data_tests:
+          - not_null
+      - name: conversions
+        description: "Count of converting users per brand/variant"
+        data_tests:
+          - not_null
+      - name: conversion_rate
+        description: "Conversions / users per brand/variant"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "conversion_rate between 0 and 1"
+
+  - name: fct_ab_brand_session
+    description: "A/B test results segmented by brand at session level"
+    columns:
+      - name: segment
+        description: "Brand name used as segmentation dimension"
+        data_tests:
+          - not_null
+      - name: variant_session
+        description: "Session variant (A or B)"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_session in ('A', 'B')"
+      - name: user_sessions
+        description: "Distinct session count per brand/variant combination"
+        data_tests:
+          - not_null
+      - name: conversions
+        description: "Count of converting sessions per brand/variant"
+        data_tests:
+          - not_null
+      - name: conversion_rate
+        description: "Conversions / sessions per brand/variant"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "conversion_rate between 0 and 1"
+
+  - name: segments
+    description: "Dimension table mapping users and sessions to brand and category segments"
+    columns:
+      - name: user_id
+        description: "User ID - not unique, as one user can appear across multiple brands/categories"
+        data_tests:
+          - not_null
+      - name: user_session
+        description: "Session ID - not unique, as one session can span multiple brands/categories"
+        data_tests:
+          - not_null
+      - name: brand
+        description: "Brand associated with the user/session events"
+        data_tests:
+          - not_null
+          - unique
+      - name: category_code
+        description: "Product category associated with the user/session events"
+        data_tests:
+          - not_null

@@ -3,6 +3,7 @@
 WITH user_events AS (
     SELECT
         user_id,
+        user_session,
         brand,
         category_code,
         /* Example categorization case: device proxy
@@ -13,7 +14,7 @@ WITH user_events AS (
         END AS device_proxy
         */
     FROM {{ ref('stg_events')}}
-    GROUP BY 1,2,3
+    GROUP BY 1,2,3,4
 )
 
 SELECT * FROM user_events

@@ -1,0 +1,22 @@
+exposures:
+
+  - name: analysis_notebook
+    label: AB test analysis                     
+    type: notebook                                # required
+    maturity: medium
+    url: https://github.com/omotalan/marketplace-product-analytics/blob/main/notebook/analysis.ipynb                       
+    description: >                          
+      Explanatory AB test run on Jupyter notebook
+
+    depends_on:                                   # expected
+      - ref('fct_funnel_user')
+      - ref('fct_funnel_session')
+      - ref('fct_ab_test_user')
+      - ref('fct_ab_test_session')
+      - ref('fct_ab_brand_user')
+      - ref('fct_ab_brand_session')
+      - ref('segments')
+
+    owner:
+      name: You
+      email: you@email.com

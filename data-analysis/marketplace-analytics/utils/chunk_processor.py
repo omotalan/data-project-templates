@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import duckdb
+import pyarrow
 from typing import List, Dict, Any, Callable
 from statsmodels.stats.proportion import proportions_ztest
 from dataclasses import dataclass
