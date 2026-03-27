@@ -77,32 +77,64 @@ def test_load_chunks_to_duckdb_no_duplicates(sample_chunks, tmp_path):
     assert count == 30  # Still 30, not 60
 
 
-def test_run_ab_aggregation(sample_chunks, tmp_path):
-    """Known data → correct A/B results and z-test output."""
+def test_run_ab_aggregation(tmp_path):
+    """Minimal DuckDB setup → correct structure and sane metrics."""
     db_path = str(tmp_path / "test.duckdb")
     processor = ChunkProcessor()
 
-    # Load raw data
-    processor.load_chunks_to_duckdb(sample_chunks, db_path=db_path, schema='raw', table_name='events')
-
-    # Create a minimal fct_funnel mart manually (simulates dbt output)
+    # Build a tiny intermediate.int_funnel_flagged directly
     con = duckdb.connect(db_path)
-    con.execute("CREATE SCHEMA IF NOT EXISTS marts")
+    con.execute("CREATE SCHEMA IF NOT EXISTS intermediate")
+
+    # Two users, one in each variant; only B purchases
+    # This is enough to exercise both user and session branches
     con.execute("""
-        CREATE TABLE marts.fct_funnel AS
-        SELECT
+        CREATE TABLE intermediate.int_funnel_flagged AS
+        SELECT * FROM (
+            VALUES
+                (1, 's1', DATE '2025-01-01', 'A', 'A', 1, 0, 0, 2),
+                (2, 's2', DATE '2025-01-01', 'B', 'B', 1, 0, 1, 2)
+        ) AS t(
             user_id,
-            CASE WHEN user_id % 2 = 0 THEN 'A' ELSE 'B' END AS variant,
-            MAX(CASE WHEN event_type = 'purchase' THEN 1 ELSE 0 END) AS contacted
-        FROM raw.events
-        GROUP BY 1, 2
+            user_session,
+            event_date,
+            variant_user,
+            variant_session,
+            viewed,
+            added_to_cart,
+            purchased,
+            total_events
+        )
     """)
     con.close()
 
-    results = processor.run_ab_aggregation(db_path=db_path)
+    # Act
+    results = processor.run_ab_aggregation(db_path=db_path, alpha=0.05)
 
-    assert 'cr_A' in results
-    assert 'p_value' in results
-    assert 0 <= results['cr_A'] <= 1
-    assert 0 <= results['cr_B'] <= 1
-    assert 0 <= results['p_value'] <= 1
+    # Top-level shape
+    assert set(results.keys()) == {"users", "sessions"}
+
+    for level in ("users", "sessions"):
+        res = results[level]
+
+        # Required keys
+        for key in [
+            "population_A", "population_B",
+            "conversions_A", "conversions_B",
+            "cr_A", "cr_B",
+            "absolute_uplift", "relative_uplift",
+            "ci_low", "ci_high",
+            "mde", "underpowered",
+            "z_stat", "p_value",
+            "significant", "alpha",
+            "srm_detected", "srm_p_value",
+            "date_from", "date_to",
+        ]:
+            assert key in res
+
+        # Sanity checks on ranges and consistency
+        assert 0 <= res["cr_A"] <= 1
+        assert 0 <= res["cr_B"] <= 1
+        assert 0 <= res["p_value"] <= 1
+        assert res["ci_low"] <= res["absolute_uplift"] <= res["ci_high"]
+        assert res["alpha"] == 0.05
