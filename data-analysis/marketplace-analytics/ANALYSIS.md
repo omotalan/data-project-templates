@@ -1,44 +1,52 @@
-# Marketplace Product Analytics - Sample Exercise Analysis 
+# Marketplace Product Analytics – Sample Exercise Analysis
 
 ### TL;DR:
+- For template instructions and methodology, see `README.md`
+- For a sample business presentation of these results, see `SLIDE_DECK.pdf`
 
-- For template instructions and methodology, see README.md
-- For a sample product analyst-level presentation, see SLIDE_DECK.pdf
+---
 
+## Hypothesis
 
-## Results & Interpretation
+> *"Our improved listing experience increases the likelihood of users purchasing."*
 
-Example output:
-![alt text](data/funnel_chart.png)
+Note: this hypothesis is illustrative only – no real feature change drives it. Variant assignment is a pseudorandom split on `user_id`. Any observed difference carries no causal business meaning.
 
-- Virtually all users that visit the website view at least one listing; however, only about 5% of them add an item to the cart.
-  - Seller contact % is higher, due to the UX workflow (the user can skip the add to cart step)
-- A/B test outcome:
-  - 7.4% vs 7.8% for Control vs Hypothesis group, respectively
-  - Relative uplift of 4.6%
-  - Statistically significant at alpha=0.01.
+---
 
-Conclusion: Results are statistically significant, but with a tiny difference. This means we can "trust" the result, but in business terms, it is irrelevant. This is expected in this sample exercise: it is a simulated setup, with arbitrary variants that carry no business value.
+## Results
 
-**Why do I say the diff is "irrelevant"?** One could argue a 4% uplift in conversion rate is meaningful, but here the context strips the result of meaning. That's because no relevant business measure was taken to cause this; with more data, the diff would probably have been diluted and the result would not have been significant.
+### Funnel Overview
 
-**What if we ran an actual test with a real hypothesis and got inconclusive results?** Many factors can cause this: Poor sampling, small dataset, insufficient timeframe... It can also be the case that there's simply no stastically significant diff. But the test stats alone are usually not enough to answer this; you should thoroughly review your test parameters and assumptions within your business context.
+![Funnel chart - User](data/funnel_chart_user.png)
 
-**"So what?" factor:** Granted that this is a demo template, any outcome can yield business-relevant conclusions. The "inconclusive" outcome is the most "dangerous", as it likely exposes flaws in test design. Still, it can shed light on poor assumptions that were taken for granted by the team, or on a flawed customer segmentation that requires a review of business logic.
+![Funnel chart - Session](data/funnel_chart_session.png)
 
 
-## Extras: add-on analyses can deepen udnerstanding of the data
+- Virtually all users who visit the site view at least one listing; only ~5% add an item to cart
+- Purchase rate is the terminal conversion event tracked here
 
-### 1. Funnel analysis
+### A/B Test Outcome
 
-**Note: Add to Cart step underrepresented in this dataset; in a real marketplace, funnel order may differ by product category.**
+| | Control (A) | Treatment (B) |
+|---|---|---|
+| Conversion Rate | 7.4% | 7.8% |
+| Relative Uplift | — | +4.6% |
+| Significant at α=0.01 | — | ✅ |
 
-TODO
+**Interpretation:** the result is statistically significant but the difference is negligible in business terms. This is expected in a simulated setup with arbitrary variants – the split carries no real treatment effect. With more data the difference would likely dilute further.
 
-### 2. Segmented A/B Analysis
+> **Why call a 4% uplift irrelevant?** Context matters. No business action caused this difference. In a real test, a 4% relative uplift on a high-volume funnel step could be very meaningful – but here it's noise dressed up as signal.
 
-Segment-level A/B tests (e.g. by brand or category) are supported via the
-`generate_ab_segment` dbt macro. Create a view for any dimension in `segments.sql`:
+> **What if a real test came back inconclusive?** Many factors can cause this: underpowered sample, insufficient timeframe, poor variant isolation. The test stats alone rarely answer this – you need to review your design assumptions in full business context. An inconclusive result is often the most valuable outcome: it surfaces flawed assumptions or segmentation logic that the team had taken for granted.
+
+---
+
+## Add-on Analyses
+
+### 1. Segmented A/B Analysis
+
+Segment-level A/B tests are supported via the `generate_ab_segment` dbt macro. Add any valid dimension to `segments.sql`:
 
 ```sql
 -- marts/fct_ab_brand.sql
@@ -47,13 +55,21 @@ Segment-level A/B tests (e.g. by brand or category) are supported via the
 ```
 
 Then query from the notebook:
-` df = con.execute("SELECT * FROM marts.fct_ab_brand").df() `
 
+```python
+df = con.execute("SELECT * FROM marts.fct_ab_brand").df()
+```
 
-### 3. Segment‑level view of the experiment
+> ⚠️ Segment-level tests are exploratory by nature. Running multiple comparisons increases the risk of false positives – treat findings as directional, not conclusive, unless corrected for (e.g. Bonferroni).
 
-Show variant conversion by one simple segment (e.g., price band or device proxy) and explicitly warn about multiple comparisons / exploratory nature.​
+### 2. Re-engagement View
 
-### 4. Early retention or re‑engagement view
+A lightweight follow-on question: do converted users return? A second model tracking repeat engagement post-conversion could frame this as a retention signal. Marked here as a natural extension of the pipeline – not implemented in this demo.
 
-Start a second, smaller model/notebook that looks at whether contacted users come back or engage differently later, framed as “work in progress.”
+---
+
+## Notes on Real-World Application
+
+- **Add to Cart is underrepresented in this dataset.** In a real marketplace, funnel order and drop-off rates vary significantly by product category and UX flow.
+- **Segment balance and SRM checks** are run automatically in `run_ab_aggregation()` – review those outputs before drawing any conclusions from conversion rates.
+- **Novelty effect:** week-over-week slicing via the timeframe parameters in `run_ab_aggregation()` is the recommended first check if treatment uplift looks strong early and fades over time.

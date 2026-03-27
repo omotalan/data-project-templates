@@ -211,3 +211,40 @@ models:
         description: "Product category associated with the user/session events"
         data_tests:
           - not_null
+          
+  - name: int_funnel_flagged
+    description: >
+      Row-level funnel flags per user/session combination, preserving event_time
+      for timeframe-based A/B filtering at analysis time. Feeds run_ab_aggregation()
+      directly and is not intended as a standalone mart.
+    columns:
+      - name: user_id
+        description: "User identifier - not unique, one user appears across multiple sessions"
+        data_tests:
+          - not_null
+      - name: user_session
+        description: "Session identifier - not unique, one session spans multiple event times"
+        data_tests:
+          - not_null
+      - name: event_time
+        description: "Timestamp of the event window - preserved for timeframe filtering"
+        data_tests:
+          - not_null
+      - name: variant_user
+        description: "A/B variant assigned at user level"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_user in ('A', 'B')"
+      - name: variant_session
+        description: "A/B variant assigned at session level"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "variant_session in ('A', 'B')"
+      - name: purchased
+        description: "1 if this user/session/time combination includes a purchase"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "purchased in (0, 1)"
