@@ -39,3 +39,7 @@ models:
       +schema: marts
       +materialized: table  # We want fast downstream queries
       +tags: ['marts', 'daily']
+    intermediate:
+      +schema: intermediate
+      +materialized: view  # We want fast downstream queries
+      +tags: ['intermediate', 'time_based']

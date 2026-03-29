@@ -5,7 +5,7 @@ WITH stg_events AS (
 SELECT
     user_id,
     user_session,
-    DATE_TRUNC('day', event_time)::DATE AS event_date, 
+    (event_time::date) AS event_date, 
     variant_user,
     variant_session,
 

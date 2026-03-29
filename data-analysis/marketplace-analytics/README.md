@@ -11,7 +11,12 @@
 This is a template for an A/B testing project on marketplace data (specifically, the XYZ dataset from Kaggle). It can be adapted to most datasets: once you have a basic ELT (Extract-Load-Transform) structure in place, you only need to add context-specific logic.
 
 **Difficulty:** Intermediate <br>
-**Intended audience:** Jr/Mid Data Analysts (Senior Product Analysts are likely familiar with this structure)
+**Intended audience:** 
+- Educational: Jr/Mid Data Analysts not famialiar with a full A/B test structure
+- Practical: Mid/Sr Data Analysts running A/B tests in production
+- Recruitment: Recruiters looking for a reference project during a hiring process
+
+<br>
 
 <details style="border: 4px solid #81969c; border-radius: 8px; background-color: #f0feff; padding: 10px; width: 900px;">
 <summary style="color: #000000;">
@@ -27,13 +32,21 @@ For those with some Python/SQL knowledge: go through the code with an LLM on the
 </details>
 
 ## Project Goals
-**(Note: For pro-level add-on challenges, skip to the end of this readme)**
 
 1. Help product data analysts quickly implement an end-to-end A/B testing routine with a low-friction template
    - 1.1. Proper data warehousing infrastructure included (dbt-based)
    - 1.2. Basic analytics setup, easily expandable to a dashboard
 2. Explain A/B testing specifics beyond the basics with a practical example – a quick, real-world reference, not an exhaustive statistics lecture
-3. Give data analyst learners a practical, working example to build on
+3. Give data analysis recruiters a reference to measure candidates responses in a practical exercise
+
+### What This Project Demonstrates
+
+- **Product analytics thinking:** Beyond data manipulation: funnel analysis, conversion metrics, and experiment design framed around real product decisions
+- **Experimentation depth:** two-proportion z-test with confidence intervals, MDE, statistical power proxy, and SRM validation – the full set of checks expected in a production A/B test
+- **Analytics engineering:** a working dbt project with staging, intermediate, and mart layers, schema tests, macros for reusable segmentation, lineage DAG, and documented exposures
+- **Large data handling:** memory-safe CSV-to-Parquet chunking pipeline for multi-GB datasets, with incremental DuckDB loading and a deduplication guard
+- **Code quality:** typed dataclasses for experiment config, separation of I/O and business logic, unit-tested pipeline, editable package install
+- **End-to-end ownership:** from raw data ingestion to statistical output to business narrative – the full analyst stack in one repo
 
 ## Data & Pipeline Overview
 
@@ -85,6 +98,13 @@ The transformation layer moves directly from staging to marts – a deliberate c
 <li>Initialise the dbt project and define your project name when prompted</li>
 <li>Run <code>dbt run</code> to materialise all models</li>
 <li>Run <code>dbt test</code> to validate the schema</li>
+</ol>
+</p>
+<h3 style="color: #000000;"> Setting up repo </h3>
+<p>
+<ol style="color: #000000;">
+<li>Copy <code>.env.example</code> to .env and set DATA_PATH to your local data directory</li>
+<li>Run <code>pip install -e .</code> from repo root to register the "utils" package</li>
 </ol>
 </p>
 </details>
@@ -160,6 +180,31 @@ This approximates random assignment, ensures reproducibility, and produces balan
 - Pre-filtering by relevant dimensions (country, platform, user tier) precedes random assignment
 - Post-assignment validation confirms group balance and data integrity
 - Additional analyses (segmented uplift, regression adjustments) may isolate causal effects
+
+## Repo Map
+
+```
+marketplace-analytics/
+├── utils/
+│ └── chunk_processor.py # Core pipeline class: CSV → Parquet → DuckDB → A/B stats
+├── dbt_project/
+│ ├── models/
+│ │ ├── staging/ # stg_events: cleaned event stream + variant assignment
+│ │ ├── intermediate/ # int_funnel_flagged: row-level funnel flags with date grain
+│ │ └── marts/ # fct_funnel, fct_ab_test, fct_ab_<segment> fact tables
+│ ├── macros/ # generate_ab_segment: reusable dimension segmentation
+│ └── exposures.yml # Downstream lineage: analysis notebook declared as consumer
+├── notebook/
+│ ├── analysis.ipynb # Full analysis: funnel, A/B test, segmentation, charts
+│ └── quick_start.py # End-to-end pipeline runner: ingest → dbt → results
+├── tests/
+│ └── test_chunk_processor.py # Unit tests for ingestion and A/B aggregation
+├── .env.example # Local path config template
+├── ANALYSIS.md # Demo experiment write-up and findings
+└── README.md # Project overview, methodology, setup instructions
+```
+
+<br>
 
 ## TODO
 

@@ -24,15 +24,16 @@ def sample_chunks(tmp_path):
     chunks = []
     for i in range(3):
         df = pd.DataFrame({
-            'user_id': range(i * 10, (i + 1) * 10),
-            'event_type': ['purchase' if j % 3 == 0 else 'view' for j in range(10)],
-            'product_id': np.random.randint(1000, 2000, 10)
+            'user_id':      range(i * 10, (i + 1) * 10),
+            'user_session': [f's{i}_{j}' for j in range(10)],
+            'event_type':   ['purchase' if j % 3 == 0 else 'view' for j in range(10)],
+            'event_time':   pd.date_range('2025-01-01', periods=10, freq='h'),
+            'product_id':   np.random.randint(1000, 2000, 10)
         })
         path = str(tmp_path / f"chunk_{i:03d}.parquet")
         df.to_parquet(path, index=False)
         chunks.append(path)
     return chunks
-
 
 @pytest.fixture
 def processor():
@@ -80,7 +81,7 @@ def test_load_chunks_to_duckdb_no_duplicates(sample_chunks, tmp_path):
 def test_run_ab_aggregation(tmp_path):
     """Minimal DuckDB setup → correct structure and sane metrics."""
     db_path = str(tmp_path / "test.duckdb")
-    processor = ChunkProcessor()
+    processor = ChunkProcessor(ab_config=ABConfig())
 
     # Build a tiny intermediate.int_funnel_flagged directly
     con = duckdb.connect(db_path)
