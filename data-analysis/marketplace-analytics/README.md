@@ -51,6 +51,7 @@ For those with some Python/SQL knowledge: go through the code with an LLM on the
 ## Data & Pipeline Overview
 
 - **Dataset:** Kaggle's "eCommerce Behavior Data from Multi Category Store" (large-volume, marketplace-style)
+  - Download at https://www.kaggle.com/datasets/mkechinov/ecommerce-behavior-data-from-multi-category-store, or run it directly from Kaggle if you have a user account
 - **Storage/engine:** DuckDB
 - **dbt models:**
   - `stg_events`: cleaned event stream, variant assignment, event normalisation
