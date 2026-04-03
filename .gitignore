@@ -1,2 +1,3 @@
 data-analysis/marketplace-analytics/data
+data-analysis/marketplace-analytics/notebook/stg_events_csvs
 .env

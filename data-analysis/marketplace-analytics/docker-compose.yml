@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres
+    container_name: grafana-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: alanzin
+      POSTGRES_DB: analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      - grafana-net 
+
+volumes:
+  pgdata:
+  
+networks:
+  grafana-net:
+    external: true 
